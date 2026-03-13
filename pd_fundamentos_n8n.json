@@ -1,0 +1,1035 @@
+{
+  "name": "pd_fundamentos_n8n",
+  "nodes": [
+    {
+      "parameters": {
+        "formTitle": "Resumo de notícias",
+        "formDescription": "Receba um resumo das principais notícias do assunto desejado! (A quantidade de notícias foi limitada manualmente a 5 notícias, a fim de evitar esgostar os tokens do LLM).",
+        "formFields": {
+          "values": [
+            {
+              "fieldLabel": "Assunto desejado:",
+              "requiredField": true
+            },
+            {
+              "fieldLabel": "Data de início das notícias:",
+              "fieldType": "date",
+              "requiredField": true
+            },
+            {
+              "fieldLabel": "Data final das notícias",
+              "fieldType": "date",
+              "requiredField": true
+            },
+            {
+              "fieldLabel": "Escolha em qual local a pesquisa deve ser realizada:",
+              "fieldType": "radio",
+              "defaultValue": "Internet",
+              "fieldOptions": {
+                "values": [
+                  {
+                    "option": "Internet"
+                  },
+                  {
+                    "option": "Base vetorial"
+                  },
+                  {
+                    "option": "Internet e base vetorial"
+                  }
+                ]
+              },
+              "requiredField": true
+            },
+            {
+              "fieldLabel": "E-mail",
+              "requiredField": true
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.formTrigger",
+      "typeVersion": 2.5,
+      "position": [
+        -1824,
+        448
+      ],
+      "id": "24a8a8f1-28b1-4ed4-9112-b9c204b75bed",
+      "name": "On form submission",
+      "webhookId": "8c0403c3-aade-4b53-bdc1-b6bae56a31c3"
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 3
+          },
+          "conditions": [
+            {
+              "id": "273f03d1-d1eb-4c4f-950f-0c88174e0dbf",
+              "leftValue": "={{ $json.articles }}",
+              "rightValue": "",
+              "operator": {
+                "type": "array",
+                "operation": "notEmpty",
+                "singleValue": true
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.3,
+      "position": [
+        -976,
+        144
+      ],
+      "id": "d222654d-8151-43f5-af5f-a976136a8915",
+      "name": "If"
+    },
+    {
+      "parameters": {
+        "batchSize": "=1",
+        "options": {
+          "reset": false
+        }
+      },
+      "type": "n8n-nodes-base.splitInBatches",
+      "typeVersion": 3,
+      "position": [
+        -560,
+        208
+      ],
+      "id": "8ffd8d86-ffa2-443e-938e-c33695a83c56",
+      "name": "Loop Over Items",
+      "alwaysOutputData": false
+    },
+    {
+      "parameters": {
+        "jsCode": "// 1. Acessa todos os itens que chegaram no nó\nconst allItems = $input.all(); \n\n// 2. Mapeia a lista transformando as strings em objetos\nconst processedItems = allItems.map(item => {\n  try {\n    let rawOutput = item.json.output;\n\n    const jsonString = rawOutput\n      .replace(/```json\\n/g, \"\")\n      .replace(/```/g, \"\")\n      .trim();\n\n    const parsedData = JSON.parse(jsonString);\n\n    return {\n      json: parsedData\n    };\n  } catch (error) {\n    return {\n      json: { \n        error: \"Falha ao converter item\", \n        raw: item.json.output \n      }\n    };\n  }\n});\n\nreturn processedItems;"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        112,
+        128
+      ],
+      "id": "19c432fd-1379-4a81-909d-bccd4e6e3919",
+      "name": "Code in JavaScript"
+    },
+    {
+      "parameters": {
+        "html": "<!DOCTYPE html>\n\n<html>\n<head>\n  <meta charset=\"UTF-8\" />\n  <title>My HTML document</title>\n</head>\n<body>\n  <div class=\"container\">\n    <h3 style=\"text-align: left;\">Assunto: {{ $('On form submission').first().json['Assunto desejado:'] }}</h3>\n    <h3 style=\"text-align: left;\">Data inicial: {{ $('On form submission').first().json['Data de início das notícias:'] }}</h3>\n    <h3 style=\"text-align: left;\">Data final: {{ $('On form submission').first().json['Data final das notícias'] }}</h3>\n    <br>\n    <h3 style=\"font-weight: bold;\">Resumo</h3>\n    <br>\n    <p style=\"text-align: justify; white-space: pre-line;\">{{ $('Code in Python - unir as notícias').item.json.lista_consolidada }}</p>\n    <br>\n    <p style=\"text-align: left; font-weight: bold;\">Referências:</p>\n    <br>\n    <p style=\"text-align: justify; white-space: pre-line;\">{{ $('Code in Python - unir as notícias').item.json.lista_referencias }}</p>\n  </div>\n</body>\n</html>\n\n<style>\n.container {\n  background-color: #ffffff;\n  text-align: center;\n  padding: 16px;\n  border-radius: 8px;\n}\n\nh1 {\n  color: #ff6d5a;\n  font-size: 24px;\n  font-weight: bold;\n  padding: 8px;\n}\n\nh2 {\n  color: #909399;\n  font-size: 18px;\n  font-weight: bold;\n  padding: 8px;\n}\n</style>\n\n<script>\nconsole.log(\"Hello World!\");\n</script>"
+      },
+      "type": "n8n-nodes-base.html",
+      "typeVersion": 1.2,
+      "position": [
+        272,
+        336
+      ],
+      "id": "e238d14e-c563-4af3-89d1-63a74248c32e",
+      "name": "HTML"
+    },
+    {
+      "parameters": {
+        "errorMessage": "Erro na resposta do servidor! A API fica inativa após 15 minutos sem uso. Tente novamente!"
+      },
+      "type": "n8n-nodes-base.stopAndError",
+      "typeVersion": 1,
+      "position": [
+        -976,
+        384
+      ],
+      "id": "06e23dbd-f2bf-4c72-ba7d-c7e522311672",
+      "name": "Stop and Error"
+    },
+    {
+      "parameters": {
+        "operation": "download",
+        "fileId": {
+          "__rl": true,
+          "value": "1nSDfKFNjIb5adTQxpL8XLLoHZtWHdOwn",
+          "mode": "list",
+          "cachedResultName": "Inteligência_artificial.pdf",
+          "cachedResultUrl": "https://drive.google.com/file/d/1nSDfKFNjIb5adTQxpL8XLLoHZtWHdOwn/view?usp=drivesdk"
+        },
+        "options": {
+          "googleFileConversion": {
+            "conversion": {
+              "docsToFormat": "application/pdf"
+            }
+          },
+          "fileName": "dados.pdf"
+        }
+      },
+      "type": "n8n-nodes-base.googleDrive",
+      "typeVersion": 3,
+      "position": [
+        -512,
+        832
+      ],
+      "id": "bd2b7e30-f1f2-42aa-85f2-fbf2a6b7c028",
+      "name": "Download file",
+      "credentials": {
+        "googleDriveOAuth2Api": {
+          "id": "yvIOuvkqCJjBlhE0",
+          "name": "Google Drive account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "dataType": "binary",
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.documentDefaultDataLoader",
+      "typeVersion": 1.1,
+      "position": [
+        -144,
+        992
+      ],
+      "id": "1d9c6df6-90b4-435b-8445-638b60f0ceda",
+      "name": "Default Data Loader"
+    },
+    {
+      "parameters": {
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.embeddingsOpenAi",
+      "typeVersion": 1.2,
+      "position": [
+        -352,
+        992
+      ],
+      "id": "8aa6cd2c-f161-4094-a123-6b21ac3276e0",
+      "name": "Embeddings OpenAI",
+      "credentials": {
+        "openAiApi": {
+          "id": "PH6nFw8yT3foliQU",
+          "name": "n8n free OpenAI API credits"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "1eec4e98-ab1d-434f-b0e0-39d096d2de42",
+              "name": "Assunto desejado:",
+              "value": "={{ $json['Assunto desejado:'].trim().toLowerCase() }}",
+              "type": "string"
+            },
+            {
+              "id": "a7321e2d-9f76-4e9b-ba7a-3c7543a9ad3a",
+              "name": "Escolha em qual local a pesquisa deve ser realizada:",
+              "value": "={{ $json['Escolha em qual local a pesquisa deve ser realizada:'].trim().toLowerCase() }}",
+              "type": "string"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        -1648,
+        448
+      ],
+      "id": "de6dbed5-cfb3-4fca-bda1-65b8ad7d5e89",
+      "name": "Edit Fields"
+    },
+    {
+      "parameters": {
+        "fromEmail": "kleberga@yahoo.com.br",
+        "toEmail": "={{ $('On form submission').item.json['E-mail'] }}",
+        "subject": "Resumo de assuntos",
+        "html": "={{ $json.html }}",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.emailSend",
+      "typeVersion": 2.1,
+      "position": [
+        192,
+        640
+      ],
+      "id": "efcabfa3-f5ac-4c3f-9eec-d0ddf7b3b217",
+      "name": "Send an Email",
+      "webhookId": "a1fe9647-8dcf-433f-8674-9d52e60baddc",
+      "credentials": {
+        "smtp": {
+          "id": "1Z9uLvqKPTVXl18z",
+          "name": "SMTP account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 3
+          },
+          "conditions": [
+            {
+              "id": "740a032d-7a97-4ae4-88ce-2b29fa4d5fd4",
+              "leftValue": "={{ $json['Escolha em qual local a pesquisa deve ser realizada:'] }}",
+              "rightValue": "internet",
+              "operator": {
+                "type": "string",
+                "operation": "contains"
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "looseTypeValidation": "={{ false }}",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.filter",
+      "typeVersion": 2.3,
+      "position": [
+        -1424,
+        336
+      ],
+      "id": "aac6ae4d-4991-4552-978c-dee5a2f9af92",
+      "name": "Filter internet"
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 3
+          },
+          "conditions": [
+            {
+              "id": "0baf6e32-4537-48a6-87ee-afc2d4fee89d",
+              "leftValue": "={{ $json['Escolha em qual local a pesquisa deve ser realizada:'] }}",
+              "rightValue": "base vetorial",
+              "operator": {
+                "type": "string",
+                "operation": "contains"
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.filter",
+      "typeVersion": 2.3,
+      "position": [
+        -1440,
+        608
+      ],
+      "id": "7fed4a40-f12a-45dd-80e2-f72887a211a1",
+      "name": "Filter base vetorial"
+    },
+    {
+      "parameters": {},
+      "type": "n8n-nodes-base.merge",
+      "typeVersion": 3.2,
+      "position": [
+        -432,
+        576
+      ],
+      "id": "ac8217f6-7f9f-4c18-aa0c-e44278bebfab",
+      "name": "Merge",
+      "alwaysOutputData": true
+    },
+    {
+      "parameters": {
+        "content": "## Fluxo de busca e resumo de notícias na internet\n",
+        "height": 480,
+        "width": 1536
+      },
+      "type": "n8n-nodes-base.stickyNote",
+      "position": [
+        -1472,
+        32
+      ],
+      "typeVersion": 1,
+      "id": "ef297099-79d1-4eae-b632-c7f319111ff6",
+      "name": "Sticky Note"
+    },
+    {
+      "parameters": {
+        "content": "## Fluxo de busca e resumo de notícias na base vetorial\n",
+        "height": 624,
+        "width": 1536,
+        "color": 6
+      },
+      "type": "n8n-nodes-base.stickyNote",
+      "position": [
+        -1472,
+        512
+      ],
+      "typeVersion": 1,
+      "id": "4896c432-d3ba-4b20-8e80-943dd8c2ca39",
+      "name": "Sticky Note1"
+    },
+    {
+      "parameters": {
+        "content": "## Fluxo de geração do relatório",
+        "height": 480,
+        "width": 560,
+        "color": 4
+      },
+      "type": "n8n-nodes-base.stickyNote",
+      "position": [
+        64,
+        32
+      ],
+      "typeVersion": 1,
+      "id": "49a59a1a-d71a-486f-bb97-862b3e6036bd",
+      "name": "Sticky Note2"
+    },
+    {
+      "parameters": {
+        "content": "## Fluxo de envio do relatório",
+        "height": 624,
+        "width": 560,
+        "color": 3
+      },
+      "type": "n8n-nodes-base.stickyNote",
+      "position": [
+        64,
+        512
+      ],
+      "typeVersion": 1,
+      "id": "131101cd-12e4-4fc6-9c84-3b4cca16c5ec",
+      "name": "Sticky Note3"
+    },
+    {
+      "parameters": {
+        "content": "## Fluxo de captura e edição de dados do usuário\n",
+        "height": 1104,
+        "width": 400,
+        "color": 5
+      },
+      "type": "n8n-nodes-base.stickyNote",
+      "position": [
+        -1872,
+        32
+      ],
+      "typeVersion": 1,
+      "id": "ad69e61b-d6ab-4088-a723-cd5b11c4768d",
+      "name": "Sticky Note4"
+    },
+    {
+      "parameters": {
+        "language": "pythonNative",
+        "pythonCode": "result = [{\"output\":  \n\"```json\\n{\\n  \\\"output\\\": \\\"Não foram encontradas notícias sobre o assunto informado! \\\",\\n \\\"title\\\": \\\"\\\", \\n  \\\"url\\\": \\\"\\\",\\n  \\\"id\\\": \\\"\\\"\\n}\\n```\"}]\n\nreturn result"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        -752,
+        48
+      ],
+      "id": "21d995b5-b6b5-4337-a09e-69f457264771",
+      "name": "Code in Python - notícias não encontradas"
+    },
+    {
+      "parameters": {
+        "language": "pythonNative",
+        "pythonCode": "# Loop over input items and add a new field called 'my_new_field' to the JSON of each one\narticles = _items[0][\"json\"][\"articles\"]\n\nfor item in range(0,len(articles)-1):\n  articles[item][\"source\"][\"id\"] = item + 1 \n  \nresult = [{\"json\": article} for article in articles]\n\nreturn result[:9]"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        -752,
+        208
+      ],
+      "id": "f6bb88ce-21f1-4aba-91b7-eef5105547a3",
+      "name": "Code in Python - notícias encontradas"
+    },
+    {
+      "parameters": {
+        "language": "pythonNative",
+        "pythonCode": "lista_auxiliar = []\n\nlista_referencias = []\n\nfor item in _items:\n    \n    dados = item.get('json', item) \n\n    if 'output' in dados:\n     \n      string = dados['output'] \n      \n      lista_auxiliar.append(string)\n\n      lista_referencias.append(\"[\" + str(dados[\"id\"]) + \"] \" + dados[\"title\"] + \"\\n\" + dados[\"url\"])\n\nif not lista_auxiliar:\n    return {\n        \"erro\": \"Nenhum campo 'output' encontrado\",\n        \"debug_estrutura_recebida\": _items[0] if _items else \"Sem itens de entrada\"\n    }\n\nmerged_auxiliar = \"\\n\".join(lista_auxiliar)\nmerged_referencias = \"\\n\".join(lista_referencias)\n\nreturn {\n  \"lista_consolidada\": merged_auxiliar,\n  \"lista_referencias\":merged_referencias\n}"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        368,
+        128
+      ],
+      "id": "29330c93-3888-4630-aba9-4537a5e2aff7",
+      "name": "Code in Python - unir as notícias"
+    },
+    {
+      "parameters": {
+        "url": "={{ $json.image_url }}",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.4,
+      "position": [
+        448,
+        768
+      ],
+      "id": "e95eda2e-14aa-44b0-b4ff-ac1dde948332",
+      "name": "HTTP Request - envia para o Google Drive"
+    },
+    {
+      "parameters": {
+        "promptType": "define",
+        "text": "=Você receberá uma palavra ou frase e precisará encontrar informações sobre ela no banco de dados e retornar um resumo. A palavra ou frase é a seguinte:  {{ $('On form submission').item.json['Assunto desejado:'] }}. No resultado final, não quero formatação como negrito ou itálico, nem linhas e parágrafos em branco. O conteúdo deve estar em apenas um parágrafo e em texto simples. Se você não encontrou o assunto, informe a mensagem \"Desculpe, o assunto não foi encontrado.\".",
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.agent",
+      "typeVersion": 3.1,
+      "position": [
+        -1152,
+        624
+      ],
+      "id": "7cfc265b-baa1-49dd-9472-a3b85c349c55",
+      "name": "AI Agent - busca e resumo no banco vetorial"
+    },
+    {
+      "parameters": {
+        "model": "openai/gpt-oss-safeguard-20b",
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.lmChatGroq",
+      "typeVersion": 1,
+      "position": [
+        -352,
+        400
+      ],
+      "id": "5bd1a80d-0618-4b1f-9ad7-19677901890c",
+      "name": "Groq Chat Model - resumo de notícias da internet",
+      "credentials": {
+        "groqApi": {
+          "id": "hDhqQQtvE7C3R1PM",
+          "name": "Groq account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "model": "openai/gpt-oss-120b",
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.lmChatGroq",
+      "typeVersion": 1,
+      "position": [
+        -1152,
+        784
+      ],
+      "id": "53b21b4c-f76e-4fee-94b4-decfdf6cfe34",
+      "name": "Groq Chat Model - busca e resumo no banco vetorial",
+      "credentials": {
+        "groqApi": {
+          "id": "hDhqQQtvE7C3R1PM",
+          "name": "Groq account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "promptType": "define",
+        "text": "=Você irá receber uma notícia e terá que fazer um resumo de pelo menos 4 linhas e colocar, no final do resumo, o número da notícia entre colchetes, por exemplo, [1]. O número da notícia deve ser incluído sempre ao final do resumo. Aqui está a notícia: {{ $json.content }} e aqui está o número da notícia: {{ $json.source.id }} O resultado final deve ser um arquivo json, onde a chave \"output\" terá o resumo realizado, a chave \"title\" tem o título que está em {{ $json.title }}, a chave \"url\" tem a URL que está me {{ $json.url }} e a chave \"id\" que está em {{ $json.source.id }}. Elimine as quebras de linhas por ventura existentes no resultado final.",
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.agent",
+      "typeVersion": 3.1,
+      "position": [
+        -352,
+        224
+      ],
+      "id": "995b2a2f-9565-4dd0-9232-6cb6faec1320",
+      "name": "AI Agent - resumo de notícias da internet",
+      "retryOnFail": true,
+      "maxTries": 5
+    },
+    {
+      "parameters": {
+        "name": "=resumo_{{ $('On form submission').item.json.submittedAt }}",
+        "driveId": {
+          "__rl": true,
+          "value": "My Drive",
+          "mode": "list",
+          "cachedResultName": "My Drive",
+          "cachedResultUrl": "https://drive.google.com/drive/my-drive"
+        },
+        "folderId": {
+          "__rl": true,
+          "value": "185ABdaDLQnrlN37fF_Oh8DddqQNWJgvI",
+          "mode": "list",
+          "cachedResultName": "n8n",
+          "cachedResultUrl": "https://drive.google.com/drive/folders/185ABdaDLQnrlN37fF_Oh8DddqQNWJgvI"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.googleDrive",
+      "typeVersion": 3,
+      "position": [
+        448,
+        976
+      ],
+      "id": "bf1035a8-74cb-4191-801a-eb0cef37fe8b",
+      "name": "Upload file",
+      "credentials": {
+        "googleDriveOAuth2Api": {
+          "id": "yvIOuvkqCJjBlhE0",
+          "name": "Google Drive account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://pd-fundamentos-n8n.onrender.com/busca",
+        "sendBody": true,
+        "bodyParameters": {
+          "parameters": [
+            {
+              "name": "assunto",
+              "value": "={{ $json['Assunto desejado:'] }}"
+            },
+            {
+              "name": "data_ini",
+              "value": "={{ $('On form submission').item.json['Data de início das notícias:'] }}"
+            },
+            {
+              "name": "data_fim",
+              "value": "={{ $('On form submission').item.json['Data final das notícias'] }}"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.4,
+      "position": [
+        -1168,
+        304
+      ],
+      "id": "37284512-b2fa-4808-9010-5329b92393d0",
+      "name": "HTTP Request - busca as notícias na internet",
+      "retryOnFail": true,
+      "maxTries": 5,
+      "waitBetweenTries": 3000,
+      "onError": "continueErrorOutput"
+    },
+    {
+      "parameters": {
+        "mode": "insert",
+        "tableName": {
+          "__rl": true,
+          "value": "documents",
+          "mode": "list",
+          "cachedResultName": "documents"
+        },
+        "options": {
+          "queryName": "match_documents"
+        }
+      },
+      "type": "@n8n/n8n-nodes-langchain.vectorStoreSupabase",
+      "typeVersion": 1.3,
+      "position": [
+        -272,
+        832
+      ],
+      "id": "3c05cd52-68ab-4e9d-ba91-207cde8a0a04",
+      "name": "Supabase Vector Store - inclusão de arquivo",
+      "credentials": {
+        "supabaseApi": {
+          "id": "wPlpxK0DwY79ZpvA",
+          "name": "Supabase account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "mode": "retrieve-as-tool",
+        "toolDescription": "Get the data from the Inteligência Artificial data file. If you did not find the answear in the data file, answear: \"Desculpe, eu não encontrei a informação solicitada na base de dados!\"",
+        "tableName": {
+          "__rl": true,
+          "value": "new_vector",
+          "mode": "list",
+          "cachedResultName": "new_vector"
+        },
+        "options": {
+          "queryName": "match_new_vector"
+        }
+      },
+      "type": "@n8n/n8n-nodes-langchain.vectorStoreSupabase",
+      "typeVersion": 1.3,
+      "position": [
+        -832,
+        768
+      ],
+      "id": "1b8f4b9b-a4eb-43df-a7c7-ae2b5bb4caa7",
+      "name": "Supabase Vector Store - busca no arquivo",
+      "credentials": {
+        "supabaseApi": {
+          "id": "wPlpxK0DwY79ZpvA",
+          "name": "Supabase account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "language": "pythonNative",
+        "pythonCode": "raw_text = _items[0][\"json\"][\"output\"]\n\nsafe_text = raw_text.replace('\"', '\\\\\"').replace('\\n', '\\\\n').replace('\\r', '')\n\nresult = [{\"output\":  \n\"```json\\n{\\n  \\\"output\\\": \\\"\" +  safe_text +  \"[n.a.] \\\",\\n \\\"title\\\": \\\"Base de dados vetorial no Supabase.\\\", \\n  \\\"url\\\": \\\"\\\",\\n  \\\"id\\\": \\\"n.a.\\\"\\n}\\n```\"}]\n\nreturn result\n# return [{\"json\": {\"output\": _items[0][\"json\"][\"output\"]}}]"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        -800,
+        592
+      ],
+      "id": "5e43869a-b60c-44f0-ab03-cd623de47897",
+      "name": "Code in Python - gerar array de json"
+    },
+    {
+      "parameters": {
+        "html_content": "={{ $('HTML').item.json.html }}",
+        "response_format_html": "png"
+      },
+      "type": "n8n-nodes-htmlcsstoimage.htmlCssToImage",
+      "typeVersion": 1,
+      "position": [
+        448,
+        544
+      ],
+      "id": "45517952-12db-474b-a30b-74f6bfad0d40",
+      "name": "HTML/CSS to Image",
+      "credentials": {
+        "htmlcsstoimgApi": {
+          "id": "vTpYBqhCOmSqxMcu",
+          "name": "HTML to Image account"
+        }
+      }
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "On form submission": {
+      "main": [
+        [
+          {
+            "node": "Edit Fields",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "If": {
+      "main": [
+        [
+          {
+            "node": "Code in Python - notícias encontradas",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Code in Python - notícias não encontradas",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Loop Over Items": {
+      "main": [
+        [
+          {
+            "node": "Merge",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "AI Agent - resumo de notícias da internet",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Code in JavaScript": {
+      "main": [
+        [
+          {
+            "node": "Code in Python - unir as notícias",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "HTML": {
+      "main": [
+        [
+          {
+            "node": "Send an Email",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "HTML/CSS to Image",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Download file": {
+      "main": [
+        [
+          {
+            "node": "Supabase Vector Store - inclusão de arquivo",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Default Data Loader": {
+      "ai_document": [
+        [
+          {
+            "node": "Supabase Vector Store - inclusão de arquivo",
+            "type": "ai_document",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Embeddings OpenAI": {
+      "ai_embedding": [
+        [
+          {
+            "node": "Supabase Vector Store - inclusão de arquivo",
+            "type": "ai_embedding",
+            "index": 0
+          },
+          {
+            "node": "Supabase Vector Store - busca no arquivo",
+            "type": "ai_embedding",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Edit Fields": {
+      "main": [
+        [
+          {
+            "node": "Filter internet",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Filter base vetorial",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Filter internet": {
+      "main": [
+        [
+          {
+            "node": "HTTP Request - busca as notícias na internet",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Filter base vetorial": {
+      "main": [
+        [
+          {
+            "node": "AI Agent - busca e resumo no banco vetorial",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Merge": {
+      "main": [
+        [
+          {
+            "node": "Code in JavaScript",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Code in Python - notícias não encontradas": {
+      "main": [
+        [
+          {
+            "node": "Code in JavaScript",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Code in Python - notícias encontradas": {
+      "main": [
+        [
+          {
+            "node": "Loop Over Items",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Code in Python - unir as notícias": {
+      "main": [
+        [
+          {
+            "node": "HTML",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "HTTP Request - envia para o Google Drive": {
+      "main": [
+        [
+          {
+            "node": "Upload file",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "AI Agent - busca e resumo no banco vetorial": {
+      "main": [
+        [
+          {
+            "node": "Code in Python - gerar array de json",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Groq Chat Model - resumo de notícias da internet": {
+      "ai_languageModel": [
+        [
+          {
+            "node": "AI Agent - resumo de notícias da internet",
+            "type": "ai_languageModel",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Groq Chat Model - busca e resumo no banco vetorial": {
+      "ai_languageModel": [
+        [
+          {
+            "node": "AI Agent - busca e resumo no banco vetorial",
+            "type": "ai_languageModel",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "AI Agent - resumo de notícias da internet": {
+      "main": [
+        [
+          {
+            "node": "Loop Over Items",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "HTTP Request - busca as notícias na internet": {
+      "main": [
+        [
+          {
+            "node": "If",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Stop and Error",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Supabase Vector Store - busca no arquivo": {
+      "ai_tool": [
+        [
+          {
+            "node": "AI Agent - busca e resumo no banco vetorial",
+            "type": "ai_tool",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Code in Python - gerar array de json": {
+      "main": [
+        [
+          {
+            "node": "Merge",
+            "type": "main",
+            "index": 1
+          }
+        ]
+      ]
+    },
+    "HTML/CSS to Image": {
+      "main": [
+        [
+          {
+            "node": "HTTP Request - envia para o Google Drive",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1",
+    "binaryMode": "separate",
+    "availableInMCP": false
+  },
+  "versionId": "4907909d-e62d-4b02-8835-660a2775bbb4",
+  "meta": {
+    "templateCredsSetupCompleted": true,
+    "instanceId": "f63d7069087602e91f986d1d5aa36c144430728d3bfad1d27f48af2c5b088eb2"
+  },
+  "id": "KXcnnLxP6vsCbumh",
+  "tags": []
+}

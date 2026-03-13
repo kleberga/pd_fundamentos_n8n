@@ -1,0 +1,187 @@
+---
+title: "PD da disciplina 'Fundamentos de Workflows no n8n [26E1_2]'"
+author: "Kleber Giovelli Abitante"
+date: ""
+output: pdf_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+## Contexto
+
+Atualmente, temos acesso a muitas informações, sendo difícil filtrar o que é relevante e do nosso interesse. Neste processo, 
+gastamos tempo acessando diversos sites de notícias e, mesmo assim, corremos o risco de perder alguma informação importante, 
+como alterações em leis ou definição de prazos para determinadas ações.
+
+## Problema
+
+No meu trabalho, há necessidade de se elaborar, semanalmente, um resumo de notícias sobre a política fiscal do governo, como 
+arrecadação de impostos, gastos públicos, endividamento, entre outros. Nesse resumo, é necessário incluir os títulos e URLs das
+notícias que foram utilizadas, a fim de possibilitar que o usuário possa conferir a notícia completa, se desejar.  
+Esta atividade é feita de forma manual: o usuário recebe um e-mail diariamente com todas notícias do dia anterior e ele tem que 
+verificar o título das notícias e filtrar aquelas que são de política fiscal. Na sexta-feira, é elaborado o resumo das 
+notícias filtradas e salvo em um servidor de arquivos para revisão pelo superior hierárquico.  
+
+## Objetivo
+
+Criar uma aplicação na plataforma n8n para automatizar a busca e a elaboração do resumo de notícias sobre qualquer tema 
+escolhido. De forma complementar, o usuário poderá escolher se deseja buscar as informações na internet, em uma base vetorial 
+ou em ambas as fontes. O resumo elaborado é formatado em HTML e salvo no Google Drive, como imagem, e também enviado ao 
+e-mail informado pelo usuário.
+
+## Principais funcionalidades propostas
+
+- O usuário define o assunto e o intervalo de datas em que deseja pesquisar as notícias. Isso possibilita buscar não 
+apenas assuntos de política fiscal, mas qualquer assunto desejado e em qualquer período;
+
+- O modelo de Large Language Models (LLM) irá decidir quais notícias tratam do assunto solicitado pelo usuário e fará 
+o resumo das mesmas; e
+
+- A aplicação irá enviar automaticamente um e-mail com o resumo para o usuário, bem como irá salvar a imagem do resumo no Google Drive. Isso 
+permitirá que o usuário examine o conteúdo recebido no e-mail e altere algo, se necessário. Essa verificação também pode 
+ensejar ajustes no prompt do LLM, caso o resumo não esteja adequado.
+
+## Impacto esperado
+
+- Redução de tempo necessário para execução desta atividade;
+
+- Redução de erros nos resumos (ortografia, pontuação, concordância, entre outros); e
+
+- Redução de erros na filtragem das notícias que tratam do assunto desejado.
+
+## Riscos e mitigação
+
+- Risco: o LLM escolher notícias que não são do assunto desejado ou deixar de escolher notícias sobre o assunto desejado.  
+  Mitigação: no início, utilizar a aplicação junto com a atividade manual, a fim de comparar os resultados e eventualmente 
+  ajustar o *prompt* do LLM que busca as notícias.
+
+- Risco: interrupção no funcionamento da API que retorna as notícias.  
+  Mitigação: buscar outro serviço de notícias, que seria utilizado como *backup*.
+
+- Risco: interrupção no funcionamento da API que aciona os modelos de LLM (*chat model* e/ou *embedding*).
+  Mitigação: ter outras opções de modelos de LLM para utilizar de *backup*.
+
+- Risco: desconexão da plataforma n8n, com impossibilidade de uso por longo período.  
+  Mitigação: desenvolver uma aplicação de *backup* em outra plataforma.
+  
+  
+## Análise da escalabilidade da aplicação
+
+A aplicação foi organizada em módulos: entrada de dados, busca na internet, busca na base vetorial, geração de relatório e 
+envio do relatório. Esta organização possibilita acrescentar ou alterar nós da aplicação com facilidade, gerando impacto 
+apenas no módulo que foi alterado. Os nós também possuem funções bem definidas, o que permite a rápida resolução de erros.
+
+## Arquitetura da aplicação
+
+A aplicação possui os seguintes nós:
+
+1. *On form submission*: trata-se de uma formulário que recebe o assunto que o usuário deseja que a aplicação busque por 
+notícias, as datas de início e de fim de publicação das notícias, se a busca deve ser apenas na internet, apenas na base vetorial ou em ambas e 
+o e-mail do usuário que receberá o resumo. Esse nó é nativo do n8n, então atende o critério de integração. O nó não possui 
+condições que possam afetar a sua disponibilidade. É fácil de se incluir ou alterar campos no formulário, atendendo o critério de 
+escalabilidade. O fato de não ser criado pelo usuário com código, mas usando estrutura pronta do n8n, o torna confiável, com baixo risco de erro. E, por fim, qualquer erro que ocorre no mesmo é armazenado no log da aplicação, sendo, portanto, monitorável.
+
+2. *Edit fiels*: é um nó que recebe as informações do usuário e coloca todas as letras em minúsculo, para posterior busca 
+na internet e/ou na base vetorial. Esse nó é nativo do n8n, então atende o critério de integração. O nó não possui 
+condições que possam afetar a sua disponibilidade. É fácil de se incluir novos campos para alteração, atendendo o critério de 
+escalabilidade. O código *javascript* usado no nó é simples e foi testado com sucesso, o que o torna confiável. E, por fim, 
+qualquer erro que ocorre no mesmo é armazenado no log da aplicação, sendo, portanto, monitorável.
+
+3. *Filter internet*: caso o local de pesquisa das notícias for apenas a internet ou a internet e a base vetorial, este 
+nó direciona o fluxo para os nós que irão buscar e resumir as notícias da internet. Esse nó é nativo do n8n, então atende o 
+critério de integração. O nó não possui condições que possam afetar a sua disponibilidade. É fácil de se incluir novos campos 
+para filtragem, atendendo o critério de escalabilidade. A condição a ser verificada no nó é simples, com baixo risco de 
+erro, o que o torna confiável. E, por fim, qualquer erro que ocorre no mesmo é armazenado no log da aplicação, sendo, portanto, 
+monitorável.
+
+4. *Filter base vetorial*: caso o local de pesquias das notícias for apenas a base vetorial ou a internet e a base vetorial, este 
+nó direciona o fluxo para os nós que irão buscar e resumir as notícias da base vetorial. Esse nó é nativo do n8n, então atende o 
+critério de integração. O nó não possui condições que possam afetar a sua disponibilidade. É fácil de se incluir novos campos 
+para filtragem, atendendo o critério de escalabilidade. A condição a ser verificada no nó é simples, com baixo risco de 
+erro, o que o torna confiável. E, por fim, qualquer erro que ocorre no mesmo é armazenado no log da aplicação, sendo, portanto, 
+monitorável.
+
+5. *HTTP Request - busca as notícias na internet*: é um nó que busca as notícias da internet. Como a integração direta com o 
+serviço de notícias não estava funcionando, foi criada uma API, usando o FastAPI do Python, que foi colocada em produção na 
+plataforma Render. A consulta é feita para esta API, que busca as notícas no serviço contratado. Esse nó é nativo do n8n, então atende o 
+critério de integração. Como o plano usando para hospedar a API no Render é gratuito, o serviço fica indisponível após 15 
+minutos sem utilizá-lo. Então, ao executar a aplicação após muito tempo sem uso, é grande a chance do nó não conseguir 
+se conectar com a API, mesmo tendo configurado 5 tentativas. Neste caso, basta executar a aplicação novamente. Quando 
+estiver em produção, é necessário contratar um plano pago do Render para evitar esse problema. O nó é fácil de ser alterado, 
+sendo apenas uma requisição POST com o envio de 3 parâmetros, atendendo o critério de escalabilidade. Com a API funcionando,
+é um nó confiável. E, por fim, qualquer erro que ocorre no mesmo é armazenado no log da aplicação, sendo, portanto, 
+monitorável.
+
+6. *If*: verifica se alguma notícia foi retornada (*TRUE*) ou nenhuma notícia foi retornada (*FALSE*). Esse nó é nativo do n8n, então atende o 
+critério de integração. O nó não possui condições que possam afetar a sua disponibilidade. É fácil de se incluir novos campos 
+para verificação, se necessário, atendendo o critério de escalabilidade. A condição a ser verificada no nó é simples, com baixo risco de 
+erro, o que o torna confiável. E, por fim, qualquer erro que ocorre no mesmo é armazenado no log da aplicação, sendo, portanto, 
+monitorável.
+
+7. *Stop and Error*: apresenta uma mensagem personalizada, caso ocorra erro no nó *HTTP Request - busca as notícias na internet*. 
+Esse nó é nativo do n8n, então atende o critério de integração. O nó não possui condições que possam afetar a sua disponibilidade. É um nó simples, que só requer a mensagem a ser passada ao usuário, atendendo o critério de escalabilidade. A condição a ser verificada no nó é simples, com baixo risco de erro, o que o torna confiável. E, por fim, qualquer erro que ocorre no mesmo é armazenado no log da aplicação, sendo, portanto, 
+monitorável.
+
+8. *Code in Python - notícias não encontradas*: gera um *array* contendo um objeto no formato JSON que avisa que nenhuma notícia 
+foi encontrada. Esse nó é nativo do n8n, então atende o critério de integração. O nó não possui condições que possam afetar a sua disponibilidade. É fácil de se incluir novos códigos, se necessário, atendendo o critério de escalabilidade. O código no nó é simples, 
+com baixo risco de erro e foi testado com sucesso, o que o torna confiável. E, por fim, qualquer erro que ocorre no mesmo é armazenado no log da aplicação, sendo, portanto, monitorável.
+
+9. *Code in Python - notícias encontradas*: gera um *array* com as notícias que foram encontradas e insere um número de identificação 
+em cada notícia, para referência no resumo. Para evitar que o limite de processamento de *tokens* do modelo de LLM que faz o resumo 
+fosse atingido, este nó mantém apenas 10 notícias para serem resumidas. Esse nó é nativo do n8n, então atende o critério de integração. O nó não possui condições que possam afetar a sua disponibilidade. É fácil de se incluir novos códigos, se necessário, atendendo o critério de escalabilidade. O código no nó é simples, com baixo risco de erro e foi testado com sucesso, o que o torna confiável. E, por fim, qualquer erro que ocorre no mesmo é armazenado no log da aplicação, sendo, portanto, monitorável.
+
+10. *Loop Over Items*: percorre os itens do *array* anterior (notícias) e entrega para o LLM realizar o resumo de cada uma. Esse nó é nativo do n8n, então atende o critério de integração. O nó não possui condições que possam afetar a sua disponibilidade. A inclusão de mais notícias no *array* não altera o funcionamento do nó, atendendo o critério de escalabilidade. Não foi realizada nenhuma configuração no nó que possa gerar erro, o que o torna confiável. E, por fim, qualquer erro que ocorre no mesmo é armazenado no log da aplicação, sendo, portanto, monitorável.
+
+11. *AI Agent - resumo de notícias da internet*: agente de Inteligência Artificial (IA) que aciona o LLM para que ele elabore 
+o resumo de cada notícia. Esse nó é nativo do n8n, então atende o critério de integração. O nó não possui condições que possam afetar a sua disponibilidade. O nó apenas aciona o LLM, não sendo afetado pela quantidade de notícias a serem resumidas, possibilitando a sua escalabilidade. O *prompt* é definido neste nó e ele pode ter impactos significativos no resumo elaborado. O *prompt* elaborado neste protótipo se mostrou adequado, tornando o nó confiável. E, por fim, qualquer erro que ocorre no mesmo é armazenado no log da aplicação, sendo, portanto, monitorável.
+
+12. *Groq Chat Model - resumo de notícias da internet*: modelo LLM que realiza o resumo de cada notícia. Esse nó é nativo do n8n, então atende o critério de integração. Este protótipo foi testado utilizando um plano gratuito, que possui maiores restrições na quantidade de *tokens* de entrada, o que pode afetar a sua disponibilidade caso sejam repassadas muitas notícias. Se a inclusão de mais notícias ultrapassar o limite de *tokens* do plano gratuito, bastaria contratar um plano que permita mais *tokens*, tornando simples a sua escalabilidade. Durante os testes realizados, o nó se mostrou confiável. E, por fim, qualquer erro que ocorre no mesmo é armazenado no log da aplicação, sendo, portanto, monitorável.
+
+13. *Code in Javascript*: converte as notícias para um formato JSON válido, removendo aspas e os outros caracteres que o tornam inválido. 
+Esse nó é nativo do n8n, então atende o critério de integração. O nó não possui nenhuma condição que possa afetar a sua disponibilidade. A inclusão de mais notícias não altera o funcionamento do nó, atendendo o critério de escalabilidade. Durante os testes realizados, o nó se mostrou confiável. E, por fim, qualquer erro que ocorre no mesmo é armazenado no log da aplicação, sendo, portanto, monitorável.
+
+14. *Code in Python - unir as notícias*: código para unir os resumos de cada notícia em um único texto. Esse nó é nativo do n8n, então atende o critério de integração. O nó não possui nenhuma condição que possa afetar a sua disponibilidade. A inclusão de mais notícias no *array* não altera o funcionamento do nó, atendendo o critério de escalabilidade. Durante os testes realizados, o nó se mostrou confiável. E, por fim, qualquer erro que ocorre no mesmo é armazenado no log da aplicação, sendo, portanto, monitorável.
+
+15. *HTML*: transforma o resumo em HTML, formatando o título, alinhamento do texto e as referências. Esse nó é nativo do n8n, então atende o critério de integração. O nó não possui nenhuma condição que possa afetar a sua disponibilidade. A inclusão de mais notícias não altera o funcionamento do nó, atendendo o critério de escalabilidade. Durante os testes realizados, o nó se mostrou confiável. E, por fim, qualquer erro que ocorre no mesmo é armazenado no log da aplicação, sendo, portanto, monitorável.
+
+16. *Send an Email*: envia o resumo para o email do usuário.  Esse nó é nativo do n8n, então atende o critério de integração. O nó não possui nenhuma condição que possa afetar a sua disponibilidade. A inclusão de mais notícias não altera o funcionamento do nó, atendendo o critério de escalabilidade. Durante os testes realizados, o nó se mostrou confiável. E, por fim, qualquer erro que ocorre no mesmo é armazenado no log da aplicação, sendo, portanto, monitorável.
+
+17. *HTML/CSS to Image*: transforma o HTML em imagem. Este não é um nó nativo do n8n, trata-se de um *community node*. Contudo, nos testes 
+realizados, não houve problema de integração. Nesse protótipo, foi utilizado um plano gratuito, que permite 10 conversões por mês, o que pode afetar a sua disponibilidade. A inclusão de mais notícias não altera o funcionamento do nó, atendendo o critério de escalabilidade. Durante os testes realizados, o nó se mostrou confiável. E, por fim, qualquer erro que ocorre no mesmo é armazenado no log da aplicação, sendo, portanto, monitorável.
+
+18. *HTTP Request - envia para o Google Drive*: realiza um GET na imagem do resumo criada no nó anterior. Esse nó é nativo do n8n, então atende o critério de integração. O nó não possui nenhuma condição que possa afetar a sua disponibilidade. A inclusão de mais notícias no *array* não altera o funcionamento do nó, atendendo o critério de escalabilidade. Durante os testes realizados, o nó se mostrou confiável. E, por fim, qualquer erro que ocorre no mesmo é armazenado no log da aplicação, sendo, portanto, monitorável.
+
+19. *Upload file*: salva o arquivo de imagem das notícias no arquivo no Google Drive. Esse nó é nativo do n8n, então atende o critério de integração. O nó não possui nenhuma condição que possa afetar a sua disponibilidade. A inclusão de mais notícias não altera o funcionamento do nó, atendendo o critério de escalabilidade. Durante os testes realizados, o nó se mostrou confiável. E, por fim, qualquer erro que ocorre no mesmo é armazenado no log da aplicação, sendo, portanto, monitorável.
+
+20. *AI Agent - busca e resumo no banco vetorial*: agente de IA que aciona o LLM para que ele busque as notícias na base vetorial e elabore o 
+resumo delas. Neste protótipo, foi inserido um arquivo PDF contendo informações sobre Inteligência Artificial, apenas para testar a aplicação. 
+Esse nó é nativo do n8n, então atende o critério de integração. Não há condição que afete a sua disponibilidade. A inclusão de mais notícias não altera o funcionamento do nó, atendendo o critério de escalabilidade. O *prompt* a ser repassado para o LLM é inserido neste nó. Nos testes 
+realizados, o *prompt* criado gerou resultados satisfatórios, sendo que o nó se mostrou confiável. E, por fim, qualquer erro que ocorre no mesmo é armazenado no log da aplicação, sendo, portanto, monitorável.
+
+21. *Groq Chat Model - busca e resumo no banco vetorial*: modelo de LLM que envia a solicitação de busca das notícias para o banco de dados vetorial. 
+Esse nó é nativo do n8n, então atende o critério de integração. O nó utilizado neste protótipo utiliza um modelo gratuito, que possui maiores restrições na quantidade de *tokens* de entrada, o que pode afetar a sua disponibilidade, embora não tenham ocorrido problemas nos testes realizados. A alteração no *prompt* para realização de uma tarefa maior não afeta o desempenho do nó em si, podendo apenas gerar maior demora na execução da tarefa, atendendo o critério de escalabilidade. Durante os testes realizados, o nó se mostrou confiável. E, por fim, qualquer erro que ocorre no mesmo é armazenado no log da aplicação, sendo, portanto, monitorável.
+
+22. *Supabase Vector Store - busca no arquivo*: informa em qual arquivo do banco de dados que as notícias devem ser buscadas. Esse nó é nativo do n8n, então atende o critério de integração. Neste protótipo, foi utilizado uma banco de dados vetorial com plano gratuito, o que pode afetar a sua disponibilidade, embora nos testes não tenham sido identificados problemas. A busca em um arquivo maior não afeta o nó, atendendo o critério de escalabilidade. Durante os testes realizados, o nó se mostrou confiável. E, por fim, qualquer erro que ocorre no mesmo é armazenado no log da aplicação, sendo, portanto, monitorável.
+
+23. *Download file*: baixa um arquivo do Google Drive. Esse nó é nativo do n8n, então atende o critério de integração. Os testes não 
+indicaram problemas de disponibilidade. O nó não requer ajustes para baixar um arquivo maior, atendendo o critério de escalabilidade. Durante os testes realizados, o nó se mostrou confiável. E, por fim, qualquer erro que ocorre no mesmo é armazenado no log da aplicação, sendo, portanto, monitorável.
+
+24. *Supabase Vector Store - inclusão de arquivo*: nó para inclusão do arquivo baixado do Google Drive no banco de dados vetorial. 
+Esse nó é nativo do n8n, então atende o critério de integração. Os testes não indicaram problemas de disponibilidade. O nó pode incluir um arquivo maior sem necessitar de alterações, atendendo o critério de escalabilidade. Durante os testes realizados, o nó se mostrou confiável. E, por fim, qualquer erro que ocorre no mesmo é armazenado no log da aplicação, sendo, portanto, monitorável.
+
+25. *Default Data Loader*: nó que carrega um arquivo para um banco de dados vetorial. Esse nó é nativo do n8n, então atende o critério de integração. Os testes não indicaram problemas de disponibilidade. O nó pode carregar um arquivo maior, atendendo o critério de escalabilidade. Durante os testes realizados, o nó se mostrou confiável. E, por fim, qualquer erro que ocorre no mesmo é armazenado no log da aplicação, sendo, portanto, monitorável.
+
+26. *Embeddings OpenAI*: nó que transforma o texto em vetores numéricos. Esse nó é nativo do n8n, então atende o critério de integração. Neste protótipo, foi utilizado um plano gratuito do modelo, que possui maiores limitações de *tokens*, o que pode afetar a sua disponibilidade. O nó pode transformar mais texto em vetores sem necessitar de ajustes, atendendo o critério de escalabilidade. Durante os testes realizados, o nó se mostrou confiável. E, por fim, qualquer erro que ocorre no mesmo é armazenado no log da aplicação, sendo, portanto, monitorável.
+
+27. *Code in Python - gerar array de json*: gera um *array* contendo dentro o JSON das notícias encontradas. Esse nó é nativo do n8n, então atende o critério de integração. Os testes não indicaram problemas de disponibilidade. O nó pode gerar um *array* maior sem necessidade de ajustes, atendendo o critério de escalabilidade. Durante os testes realizados, o nó se mostrou confiável. E, por fim, qualquer erro que ocorre no mesmo é armazenado no log da aplicação, sendo, portanto, monitorável.
+
+28. *Merge*: une as notícias obtidas do banco de dados vetorial com as notícias obtidas da internet. Esse nó é nativo do n8n, então atende o critério de integração. Os testes não indicaram problemas de disponibilidade. O nó pode unir quantidades maiores de notícias, atendendo o critério de escalabilidade. Durante os testes realizados, o nó se mostrou confiável. E, por fim, qualquer erro que ocorre no mesmo é armazenado no log da aplicação, sendo, portanto, monitorável.
+
+## Análise dos resultados
+
+O fluxo apresentado consegue solucionar plenamente o problema apresentado anteriormente. O maior risco reside na escolha, 
+pela LLM, das notícias que tratam do assunto escolhido pelo usuário. Deve ser feito um trabalho de avaliação da aplicação, 
+comparando os seus resultados com a execução manual da atividade, a fim de validar a aplicação ou realizar os ajustes 
+necessários.
